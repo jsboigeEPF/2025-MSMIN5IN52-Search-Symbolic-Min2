@@ -1,0 +1,26 @@
+{
+  "Team A": {
+    "name": "Stade A",
+    "unavailable": []
+  },
+  "Team B": {
+    "name": "Stade B",
+    "unavailable": []
+  },
+  "Team C": {
+    "name": "Stade C",
+    "unavailable": []
+  },
+  "Team D": {
+    "name": "Stade D",
+    "unavailable": []
+  },
+  "Team E": {
+    "name": "Stade E",
+    "unavailable": []
+  },
+  "Team F": {
+    "name": "Stade F",
+    "unavailable": []
+  }
+}

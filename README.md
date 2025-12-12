@@ -1,1016 +1,297 @@
-# EPF Min2 - IA Exploratoire et Symbolique
+# 🏆 Sports Tournament Scheduler
 
-Projet pédagogique d'exploration des approches d'intelligence artificielle symbolique et exploratoire pour les étudiants de l'EPF.
+Planificateur de tournois sportifs utilisant la programmation par contraintes (OR-Tools CP-SAT).  
+Projet MSMIN5IN52 - Recherche symbolique (2025)
+
+## 🎯 Objectif
+
+Générer un calendrier de tournoi round-robin (aller simple ou aller-retour) en optimisant l'alternance domicile/extérieur pour **minimiser les "breaks"** (matchs consécutifs au même endroit).
+
+## ✨ Fonctionnalités
+
+✅ **Programmation par contraintes** avec OR-Tools CP-SAT  
+✅ **Support équipes paires ET impaires** (système de bye automatique)  
+✅ **Minimisation des breaks** (borne théorique: n-2 pour n équipes)  
+✅ **Contraintes d'équité** (max déplacements consécutifs)  
+✅ **API REST FastAPI** avec documentation Swagger  
+✅ **Interface web moderne** React + TypeScript  
+✅ **Visualisation calendrier** avec FullCalendar  
+✅ **Export JSON** du calendrier
+
+## 🚀 Installation rapide
+
+### Avec conda (Recommandé)
+
+```bash
+# Installation automatique
+./setup_conda.sh
+
+# Démarrage de l'API
+./start_api.sh
+```
+
+### Installation manuelle
+
+```bash
+# Activer l'environnement conda
+conda activate sender
+
+# Installer les dépendances
+pip install -r requirements.txt
+
+# Démarrer l'API
+uvicorn src.api:app --reload --host 0.0.0.0 --port 8000
+```
+
+## 🌐 Utilisation
+
+### Interface Web (Recommandé)
+
+1. **Démarrer le backend**
+
+```bash
+conda activate sender
+./start_api.sh
+# API disponible sur http://localhost:8000
+```
+
+2. **Démarrer le frontend**
+
+```bash
+cd frontend
+bun install  # Première fois seulement
+bun run dev
+# Interface disponible sur http://localhost:5173
+```
+
+3. **Utiliser l'interface**
+   - Ajouter vos équipes (2 minimum, pair ou impair !)
+   - Choisir le type de tournoi (simple/double)
+   - Configurer le temps de résolution
+   - Cliquer sur "Générer le calendrier"
+   - Visualiser sur le calendrier ou en liste
+   - Exporter en JSON
+
+### CLI (Mode ligne de commande)
+
+Générer un calendrier simple (6 équipes) :
+
+```bash
+python -m src.main --teams data/teams_example.json --rounds single --max-time 30
+```
+
+Exporter en JSON :
+
+```bash
+python -m src.main --teams data/teams_example.json --out schedule.json
+```
+
+### API REST
+
+```bash
+# Tester l'API
+curl http://localhost:8000/health
+
+# Générer un calendrier
+curl -X POST http://localhost:8000/solve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "teams": ["PSG", "OM", "Lyon", "Monaco", "Lille"],
+    "rounds": "single",
+    "max_time": 30
+  }'
+```
+
+Documentation interactive : http://localhost:8000/docs
+
+## 📊 Contraintes implémentées
+
+### 1. Variables de décision
+
+- `M[(t,a,b)]` : Équipe `a` reçoit équipe `b` au tour `t`
+- `home[(t,i)]` : Équipe `i` joue à domicile au tour `t`
+- `breaks[(t,i)]` : Équipe `i` a un break au tour `t`
+
+### 2. Contraintes globales
+
+- ✅ **Alternance domicile/extérieur** : Global constraints
+- ✅ **Minimisation des breaks** : Fonction objectif
+- ✅ **Max déplacements consécutifs** : Fenêtre glissante (défaut: 3)
+- ✅ **Round-robin complet** : Chaque équipe rencontre toutes les autres
+- ✅ **Équité** : Distribution équilibrée des matchs
+
+### 3. Support équipes impaires
+
+- Système de **"bye"** automatique (équipe au repos)
+- Une équipe fictive (-1) pour équilibrer le calendrier
+- Chaque équipe a exactement 1 journée de repos
+
+## 🏗️ Structure du projet
+
+```
+.
+├── src/
+│   ├── api.py           # API FastAPI
+│   ├── main.py          # CLI
+│   ├── model.py         # Modèle CP-SAT
+│   ├── solver.py        # Wrapper de résolution
+│   ├── generator.py     # Algorithme du cercle (round-robin)
+│   └── visualize.py     # Export et affichage
+├── frontend/            # Interface React + TypeScript
+│   ├── src/
+│   │   ├── App.tsx      # Composant principal
+│   │   └── components/  # Composants réutilisables
+│   └── package.json
+├── data/               # Données d'exemple
+├── tests/              # Tests unitaires
+├── setup_conda.sh      # Script d'installation
+├── start_api.sh        # Script de démarrage
+└── requirements.txt    # Dépendances Python
+```
+
+## 📚 Documentation
+
+- **[QUICKSTART.md](QUICKSTART.md)** - Guide de démarrage rapide
+- **[GUIDE_UTILISATION.md](GUIDE_UTILISATION.md)** - Guide d'utilisation détaillé
+- **[API_README.md](API_README.md)** - Documentation de l'API
+- **[FONCTIONNALITES.md](FONCTIONNALITES.md)** - Liste complète des fonctionnalités
+- **[EQUIPES_IMPAIRES.md](EQUIPES_IMPAIRES.md)** - Explication du système de bye
+
+## 🧪 Tests
+
+```bash
+conda activate sender
+pytest tests/
+```
+
+## 🎓 Références académiques
+
+### Articles principaux
+
+- **Régin (CP 2008)** - _Minimizing breaks in sports schedules_  
+  Modèle CP pour tournoi simple ronde, preuve de la borne minimale (n-2 breaks)
+
+- **Schaerf (1999)** - _Sports scheduling_  
+  Revue complète des approches de scheduling sportif
+
+- **ITC 2021** - _Sports Scheduling Track_  
+  Compétition internationale utilisant CP et métaheuristiques
+
+### Implémentation
+
+- **OR-Tools CP-SAT** : Google Optimization Tools
+- **Circle Method** : Algorithme classique de génération round-robin
+- **Global Constraints** : Pour alternance domicile/extérieur
+
+## 🔬 Technologies
+
+### Backend
+
+- **Python 3.11** avec conda
+- **OR-Tools** (>= 9.6) - Solveur CP-SAT
+- **FastAPI** (>= 0.104) - API REST moderne
+- **Uvicorn** - Serveur ASGI
+- **Pydantic** - Validation de données
+
+### Frontend
+
+- **React 18** + **TypeScript**
+- **Vite** - Build tool rapide
+- **Bun** - Runtime JavaScript performant
+- **FullCalendar** - Visualisation calendrier
+- **Tailwind CSS** - Framework CSS
+
+## 💡 Exemples d'utilisation
+
+### Exemple 1 : 6 équipes (nombre pair)
+
+```python
+teams = ["PSG", "OM", "Lyon", "Monaco", "Lille", "Rennes"]
+# Résultat : 5 journées, 15 matchs, 3 matchs par journée
+# Breaks optimaux : ~ 4 (théorique minimum = 6-2 = 4)
+```
+
+### Exemple 2 : 5 équipes (nombre impair)
+
+```python
+teams = ["PSG", "OM", "Lyon", "Monaco", "Lille"]
+# Résultat : 5 journées, 10 matchs, 2 matchs par journée
+# Chaque équipe a 1 journée de repos
+# Breaks optimaux : ~ 3 (théorique minimum = 5-2 = 3)
+```
+
+### Exemple 3 : Double round-robin
+
+```python
+teams = ["PSG", "OM", "Lyon", "Monaco"]
+rounds = "double"
+# Résultat : 6 journées (aller-retour)
+# Phase aller : 3 journées
+# Phase retour : 3 journées (domicile/extérieur inversés)
+```
+
+## ⚡ Performance
+
+### Temps de résolution typiques
+
+- **6 équipes** : ~5-10 secondes
+- **8 équipes** : ~10-20 secondes
+- **10 équipes** : ~30-60 secondes
+- **12+ équipes** : 60-120 secondes
+
+### Optimisation
+
+- Multi-threading (8 workers par défaut)
+- Temps de résolution configurable (5-120s)
+- Heuristiques de recherche optimisées
+
+## 🐛 Dépannage
+
+### L'API ne démarre pas
+
+```bash
+# Vérifier l'environnement
+conda activate sender
+pip install -r requirements.txt
+
+# Vérifier le port
+lsof -i :8000
+```
+
+### Erreur "Connection refused" dans le frontend
+
+1. Vérifier que l'API est démarrée : `curl http://localhost:8000/health`
+2. Vérifier les CORS dans `src/api.py`
+
+### Aucune solution trouvée
+
+- Augmenter le temps de résolution
+- Pour grandes instances (>20 équipes), le problème devient très difficile
+
+## 👥 Auteurs
+
+Projet MSMIN5IN52 - Recherche symbolique  
+Polytech Nice Sophia (2025)
+
+## 📝 Licence
+
+Projet académique - Usage éducatif
 
 ---
 
-## 📅 Modalités du projet
+## 🚀 Quick Start
 
-### Échéances importantes
-- **19 novembre** : Présentation des sujets proposés
-- **1er décembre** : Checkpoint intermédiaire
-- **16 décembre** : Présentation finale et rendu
+```bash
+# Installation
+./setup_conda.sh
 
-### Date de livraison
-Le code avec le README devront être livrés 2 jours au plus tard avant la présentation (soit le 14 décembre)
+# Terminal 1 - Backend
+./start_api.sh
 
-### Taille des groupes
-La taille standard d'un groupe est de 3 personnes, avec +1 pour les groupes de 2 et -1 pour les groupes de 4
+# Terminal 2 - Frontend
+cd frontend && bun run dev
 
-### Évaluation
-- Présentation/communication
-- Contenu théorique, contexte et perspectives
-- Contenu technique, performances, qualité du code et du logiciel
-- Organisation/Collaboration (notamment activité git)
+# Ouvrir http://localhost:5173 dans le navigateur
+```
 
-### Livrables attendus
-- Code source documenté
-- README de présentation avec infos essentielles, procédure d'installation et tests
-- Slides de la présentation
-
----
-
-## 🎯 Sujets détaillés pour le projet
-
-### 1. Optimisation de plannings infirmiers
-
-**Description du problème et contexte**
-La planification du personnel soignant consiste à affecter de manière optimale les infirmier·ère·s aux différents shifts (matin, après-midi, nuit) sur une période donnée, tout en respectant des contraintes légales (durées maximales de travail, jours de repos), opérationnelles (couverture des besoins par créneau) et de préférences individuelles. Ce problème NP-difficile se prête particulièrement bien à la programmation par contraintes (CSP) pour modéliser et résoudre l'ensemble des exigences.
-
-**Références multiples**
-- **Revue de littérature** : Burke et al., _The state of the art of nurse rostering_ (2004) - Méthodes d'optimisation des plannings
-- **CP Optimizer** : [IBM CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio/cplex-cp-optimizer) - Programmation par contraintes pour le staffing
-- **OR-Tools** : [Solver Max - Nurse rostering](https://www.solvermax.com/resources/models/staff-scheduling/nurse-rostering-in-or-tools-cp-sat-solver) - Modèle CSP avec CP-SAT
-- **Tutoriel** : [Solving Nurse Rostering with Google OR-Tools](https://medium.com/@mobini/solving-the-nurse-rostering-problem-using-google-or-tools-755689b877c0) - Modélisation détaillée
-
-**Approches suggérées**
-- Modéliser les variables (infirmier·ère·s, shifts, jours) avec leurs domaines d'affectation
-- Implémenter les contraintes de couverture, repos et préférences individuelles
-- Utiliser un solveur CSP (OR-Tools CP-SAT, IBM CP Optimizer) ou approche hybride (CSP + MILP)
-- Développer un notebook explicatif avec analyse comparative sur différentes instances de test
-
-**Technologies pertinentes**
-- Python avec OR-Tools CP-SAT ou IBM CP Optimizer pour la résolution CSP
-- MiniZinc pour la modélisation déclarative de contraintes
-- Pandas pour la manipulation des données de planification
-- Matplotlib/Plotly pour la visualisation des emplois du temps
-
-### 2. Modélisation de la propagation COVID-19 avec algorithmes génétiques
-
-**Description du problème et contexte**
-La modélisation mathématique de la propagation épidémique est essentielle pour la prise de décision sanitaire. Les algorithmes génétiques permettent d'optimiser les paramètres des modèles SIR/SEIR pour mieux correspondre aux données réelles de propagation COVID-19 et prédire les scénarios futurs.
-
-**Références multiples**
-- **Publication principale** : [arXiv:2008.12020](https://arxiv.org/abs/2008.12020) - Modélisation épidémique avec approches évolutionnaires
-- **Deep Q-Learning** : [ACM DOI](https://dl.acm.org/doi/pdf/10.1145/3340531.3412179) - Apprentissage par renforcement pour épidémies
-- **Optimisation** : [ScienceDirect](https://www.sciencedirect.com/science/article/pii/S0960077920302836) - Métaheuristiques pour modèles épidémiologiques
-
-**Approches suggérées**
-- Implémenter un modèle SIR/SEIR avec paramètres optimisables
-- Développer un algorithme génétique pour calibrer les paramètres sur données réelles
-- Intégrer des contraintes réalistes (capacité hospitalière, mesures sanitaires)
-- Visualiser l'évolution de l'épidémie sous différents scénarios
-
-**Technologies pertinentes**
-- Python avec NumPy, SciPy pour la modélisation mathématique
-- DEAP ou PyGAD pour les algorithmes génétiques
-- Matplotlib/Plotly pour la visualisation des courbes épidémiques
-- Pandas pour la manipulation des données réelles
-
----
-
-### 3. Problème d'échange de reins (Kidney Exchange)
-
-**Description du problème et contexte**
-L'appariement optimal de donneurs et receveurs d'organes incompatibles se modélise comme un graphe orienté où chaque cycle représente un échange de greffes. L'objectif est de maximiser le nombre de transplantations effectuées, sous la contrainte qu'aucun couple ne donne sans recevoir (stabilité individuelle). Ce problème d'optimisation combinatoire NP-difficile admet de multiples variantes selon la longueur des cycles d'échange autorisés (longueur 2, 3 ou plus).
-
-**Références multiples**
-- **Publication principale** : Roth et al., _Efficient Kidney Exchange_ (AER 2007) - Fondements théoriques
-- **Algorithmes** : Abraham et al., _Clearing Algorithms for Barter Exchange_ (EC 2007) - Méthodes de résolution
-- **Implémentation** : [GitHub - kidney_solver](https://github.com/jamestrimble/kidney_solver) - Solveur Python/Gurobi
-- **Documentation** : [Wikipedia - Optimal kidney exchange](https://en.wikipedia.org/wiki/Optimal_kidney_exchange) - Définitions et contraintes
-
-**Approches suggérées**
-- Modéliser les paires donneur-receveur comme sommets d'un graphe orienté avec arcs de compatibilité
-- Implémenter des algorithmes de recherche de cycles optimaux (programmation linéaire ou contraintes)
-- Développer des heuristiques pour traiter des instances de grande taille
-- Comparer différentes formulations (graphe de cycles, matching multi-dimensionnel)
-
-**Technologies pertinentes**
-- Python avec NetworkX pour la manipulation de graphes
-- Gurobi ou OR-Tools pour l'optimisation combinatoire
-- PuLP pour la modélisation en programmation linéaire
-- Visualisation avec Graphviz ou Matplotlib pour représenter les échanges
-
-### 4. Identification d'inhibiteurs moléculaires COVID-19
-
-**Description du problème et contexte**
-La recherche d'inhibiteurs moléculaires contre la protéase principale du SARS-CoV-2 est une approche thérapeutique cruciale. Ce sujet explore l'utilisation de techniques computationnelles pour identifier des composés naturels potentiels pouvant bloquer l'activité de cette enzyme virale.
-
-**Références multiples**
-- **Publication principale** : [Inhibiteurs COVID-19](http://lavierebelle.org/IMG/pdf/2020_potential_inhibitor_of_covid-19_main_protease_from_several_medicinal_plant_compounds.pdf) - Analyse de composés végétaux
-- Bases de données moléculaires : PubChem, ChEMBL pour les structures chimiques
-- Outils de docking moléculaire : AutoDock Vina, SwissDock
-
-**Approches suggérées**
-- Analyser les structures 3D de la protéase principale COVID-19
-- Implémenter des algorithmes de similarité structurelle entre molécules
-- Développer un système de scoring pour évaluer le potentiel d'inhibition
-- Utiliser des techniques d'apprentissage automatique pour prédire l'activité biologique
-
-**Technologies pertinentes**
-- Python avec RDKit pour la chimie computationnelle
-- BioPython pour les structures protéiques
-- Machine Learning avec scikit-learn pour la prédiction d'activité
-- Visualisation moléculaire avec PyMOL ou Chimera
-
----
-
-### 5. Ordonnancement de production (Job-Shop Scheduling)
-
-**Description du problème et contexte**
-Le Job-Shop Scheduling consiste à planifier l'exécution d'un ensemble de tâches (jobs) devant être traitées sur plusieurs machines, chacune ayant une capacité limitée (une tâche par machine à la fois). L'objectif principal est de minimiser le makespan (durée totale de production) tout en optimisant l'utilisation des ressources. Des contraintes supplémentaires peuvent être intégrées : maintenance programmée, ressources cumulatives, objectifs multi-critères.
-
-**Références multiples**
-- **Introduction** : [Job Shop Scheduling Problem | sysid blog](https://sysid.github.io/job-shop-scheduling-problem/) - Formulation générale du problème
-- **Solveurs CP** : [IBM CP Optimizer](https://www.ibm.com/products/ilog-cplex-optimization-studio/cplex-cp-optimizer) - Présentation des solveurs utilisés
-- **Référence historique** : J. Carlier (1982), _Proc. of first job-shop scheduling constraint solver_ - Résolution par contraintes
-- **Études de cas** : Travaux académiques sur l'impact de la propagation des contraintes
-
-**Approches suggérées**
-- Utiliser des variables d'intervalle pour chaque opération (début et durée fixe)
-- Implémenter des contraintes de non-chevauchement (une machine = une tâche à la fois)
-- Respecter l'ordre prédéfini des opérations pour chaque job
-- Explorer des stratégies d'optimisation hybride (CP combiné avec heuristiques)
-
-**Technologies pertinentes**
-- Python avec OR-Tools CP-SAT pour la modélisation et résolution
-- IBM CP Optimizer pour les instances industrielles complexes
-- MiniZinc pour la modélisation déclarative de contraintes
-- Gantt charts avec Matplotlib pour la visualisation des plannings
-
-### 6. Optimisation hospitalière avec métaheuristiques
-
-**Description du problème et contexte**
-L'optimisation des ressources hospitalières est critique pour améliorer la qualité des soins et réduire les coûts. Les métaheuristiques permettent de résoudre des problèmes complexes d'allocation de lits, planification du personnel et gestion des flux patients dans des environnements contraints.
-
-**Références multiples**
-- **Décharge patients** : [PMC543827](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC543827/) - Optimisation des durées de séjour
-- **Planning patients** : [arXiv:1805.02264](https://arxiv.org/pdf/1805.02264.pdf) - Ordonnancement des interventions
-- **Planning soignants** : [Strathprints](https://strathprints.strath.ac.uk/59727/1/Rahimian_etal_COR_2017_A_hybrid_integer_and_constraint_programming_approach.pdf) - Optimisation du personnel
-
-**Approches suggérées**
-- Modéliser les contraintes hospitalières (personnel, équipements, réglementations)
-- Implémenter plusieurs métaheuristiques (recuit simulé, recherche tabou, colonies de fourmis)
-- Développer un système multi-objectifs (qualité des soins, coûts, satisfaction patient)
-- Créer une interface de simulation pour tester différents scénarios
-
-**Technologies pertinentes**
-- Python avec OR-Tools ou PuLP pour la programmation par contraintes
-- Métaheuristiques avec MetaPy ou implémentation personnalisée
-- Base de données SQL pour la gestion des données hospitalières
-- Interface web avec Flask/Django pour la visualisation
-
----
-
-### 7. Planification d'emploi du temps universitaire
-
-**Description du problème et contexte**
-La planification des emplois du temps universitaires (cours ou examens) consiste à assigner des créneaux horaires et des salles en tenant compte de multiples contraintes : disponibilité des enseignants, capacité et disponibilité des salles, évitement des conflits horaires, répartition équilibrée des cours, et intégration de préférences. Ce problème NP-combinatoire bénéficie grandement de l'approche CSP qui permet une modélisation déclarative des contraintes et des techniques de propagation efficaces.
-
-**Références multiples**
-- **CLP pour timetabling** : [Constraint Logic Programming over finite domains](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=00f0110d17de0d95bbbdbea822bebeede956d64e) - Application du CLP aux emplois du temps
-- **Thèse de référence** : [Constraint-based Timetabling](https://www.unitime.org/papers/phd05.pdf) - Méthodes CP appliquées à la timetabling
-- **Travaux allemands** : Goltz & Matzke (1999), _University Timetabling using Constraint Logic Programming_ - Encodage CLP et analyse
-- **Recherche locale** : Schaus et al. (2014), _CBLS for Course Timetabling_ - Optimisation des emplois du temps
-- **Compétition** : International Timetabling Competition - Ressources et données réelles de planification
-
-**Approches suggérées**
-- Modéliser avec des variables pour les créneaux horaires et salles affectées à chaque cours/examen
-- Implémenter des contraintes d'exclusion mutuelle (pas deux activités simultanées pour un même enseignant/salle)
-- Gérer les contraintes de capacité et disponibilités des ressources
-- Optimiser en minimisant les conflits et maximisant la satisfaction des préférences
-
-**Technologies pertinentes**
-- MiniZinc ou Choco pour la modélisation déclarative de contraintes
-- OR-Tools CP-SAT pour la résolution avec techniques de propagation avancées
-- Python avec frameworks CSP (python-constraint, Google OR-Tools)
-- Visualisation avec calendriers interactifs (FullCalendar, bibliothèques Planning)
-
----
-
-### 8. Systèmes experts médicaux en programmation logique
-
-**Description du problème et contexte**
-Les systèmes experts médicaux reproduisent le raisonnement clinique des médecins en utilisant des règles logiques. Ce sujet explore l'implémentation de moteurs d'inférence capables de diagnostiquer des pathologies courantes basées sur des symptômes et antécédents patients.
-
-**Références multiples**
-- **Systèmes experts** : [HAL Archives](https://hal.archives-ouvertes.fr/hal-01610722/document) - Conception et architecture
-- **Diabète** : [ScienceDirect](https://pdf.sciencedirectassets.com/280203/1-s2.0-S1877050915X00275/1-s2.0-S1877050915028604/main.pdf) - Application pratique au diabète
-- **Logique** : [MobileDSS](http://www.mobiledss.uottawa.ca/fileadmin/publications/pdf/paper_jms_2016.pdf) - Programmation logique médicale
-
-**Approches suggérées**
-- Développer un moteur d'inférence en chaînage avant/arrière
-- Créer une base de connaissances avec règles médicales structurées
-- Implémenter des mécanismes de gestion d'incertitude (facteurs de confiance)
-- Intégrer une interface pour l'acquisition des symptômes patients
-
-**Technologies pertinentes**
-- Prolog pour la programmation logique naturelle
-- Python avec PyKE ou CLIPS pour les systèmes experts
-- Base de connaissances en format XML/JSON
-- Interface web avec React/Vue pour l'interaction utilisateur
-
----
-
-
-
-### 9. Solveur de Wordle par CSP (et LLM)
-
-**Description du problème et contexte**
-Wordle est un jeu de mots dans lequel à chaque tentative de mot, on obtient des indications de lettres bien placées, mal placées ou absentes. Ces indices se traduisent par des contraintes sur le mot secret : certaines positions doivent contenir certaines lettres, d'autres non, etc. Un programme peut appliquer ces contraintes à un dictionnaire pour filtrer les mots possibles. Par exemple, une approche par contraintes définit des variables pour chaque lettre du mot secret et impose les retours (vert, jaune, gris) comme contraintes logiques sur ces variables.
-
-**Références multiples**
-- **Approche CSP** : [Beating Wordle: Constraint Programming](https://medium.com/better-programming/beating-wordle-constraint-programming-ef0b0b6897fe) - Utilisation d'un solver de contraintes sur un dataset de mots
-- **Implémentation** : hakank.org - Implémentation d'un solveur Wordle en OR-Tools CP-SAT
-- **Function calling** : [OpenAI Function calling documentation](https://platform.openai.com/docs/guides/function-calling) - Appel de fonctions pour déléguer des tâches (ex. solveur externe)
-- **Intégration LLM** : On peut intégrer un LLM en function-calling pour qu'il exploite un solveur CSP sous-jacent et propose des coups optimisés
-
-**Approches suggérées**
-- Définir des variables pour chaque lettre du mot secret et imposer les contraintes de retour (vert/jaune/gris)
-- Utiliser un solveur de contraintes pour réduire l'espace des solutions à chaque coup
-- Intégrer un LLM via function calling pour déduire les contraintes linguistiques
-- Développer une stratégie d'optimisation pour minimiser le nombre de tentatives
-
-**Technologies pertinentes**
-- Python avec python-constraint ou OR-Tools CP-SAT pour la résolution
-- Dictionnaires de mots français/anglais pour les domaines de variables
-- API OpenAI ou modèles locaux pour l'intégration LLM
-- Interface web avec React/Vue pour une expérience interactive
-
----
-
-### 10. Solveurs SMT pour la biologie synthétique
-
-**Description du problème et contexte**
-La biologie synthétique nécessite la vérification formelle de circuits génétiques pour garantir leur comportement attendu. Les solveurs SMT (Satisfiability Modulo Theories) permettent de vérifier mathématiquement les propriétés de systèmes biologiques complexes avant leur implémentation.
-
-**Références multiples**
-- **Publication Z3** : [Microsoft Research](https://www.microsoft.com/en-us/research/wp-content/uploads/2014/07/pyhwk14.pdf) - Application de Z3 à la biologie
-- **Projet Z3** : [Z3 for Biology](https://www.microsoft.com/en-us/research/project/z3-4biology/) - Framework spécialisé
-- **Bio Model Analyzer** : [biomodelanalyzer.org](http://biomodelanalyzer.org/) - Outil d'analyse en ligne
-- **Dépôt officiel** : [BioModelAnalyzer GitHub](https://github.com/Microsoft/BioModelAnalyzer) - Code source complet
-
-**Approches suggérées**
-- Modéliser les circuits génétiques en logique temporelle
-- Utiliser Z3 pour vérifier des propriétés (stabilité, oscillations, bistabilité)
-- Développer une interface pour spécifier des contraintes biologiques
-- Intégrer des bibliothèques de modèles biologiques standards
-
-**Technologies pertinentes**
-- Z3 Theorem Prover (C++/Python bindings)
-- BioNetGen pour la modélisation de réseaux biochimiques
-- SBML (Systems Biology Markup Language) pour les standards
-- Python avec SymPy pour les expressions mathématiques
-
----
-
-### 11. Résolution automatique du puzzle du Démineur
-
-**Description du problème et contexte**
-Le jeu du Démineur se résout automatiquement en modélisant le problème sous forme de CSP. Chaque case inconnue de la grille est représentée par une variable booléenne indiquant la présence ou non d'une mine. Pour chaque case ouverte, le chiffre affiché impose que le nombre de mines dans son voisinage corresponde exactement à cette valeur. La propagation de contraintes permet de déduire systématiquement quelles cases sont sûres et lesquelles contiennent une mine, bien que le problème soit NP-complet dans sa version générale.
-
-**Références multiples**
-- **Article de référence** : Bayer & Snyder (2013), [A Constraint-Based Approach to Solving Minesweeper](https://digitalcommons.unl.edu/cseconfwork/170/) - Modélisation CSP complète
-- **Complexité** : [Minesweeper is NP-complete](https://www.cs.princeton.edu/~wayne/cs423/lectures/np-complete) (Princeton, 2013) - Preuve de difficulté
-- **Implémentation** : [GitHub - Minesweeper_CSP](https://github.com/jgesc/Minesweeper_CSP) - Solveur en programmation par contraintes
-- **Tutoriel** : Documentation sur la modélisation avec contraintes de somme sur voisinages
-
-**Approches suggérées**
-- Définir une variable booléenne par case inconnue (mine présente ou non)
-- Ajouter une contrainte d'égalité sur la somme des variables de voisinage pour chaque case ouverte
-- Appliquer la propagation (arc-consistency) pour réduire drastiquement l'espace de recherche
-- Utiliser le backtracking intelligent pour les configurations ambiguës
-
-**Technologies pertinentes**
-- Python avec python-constraint pour une implémentation rapide
-- OR-Tools CP-SAT pour la résolution efficace avec propagation avancée
-- Z3 SMT solver comme alternative pour les contraintes de somme
-- Interface graphique avec Pygame ou Tkinter pour la visualisation interactive
-
----
-
-### 12. Ontologies médicales et web sémantique
-
-**Description du problème et contexte**
-Les ontologies médicales permettent de structurer et d'interconnecter les connaissances médicales pour le web sémantique. Ce sujet explore la création et l'utilisation de réseaux sémantiques pour améliorer l'accès à l'information médicale et faciliter le raisonnement automatisé.
-
-**Références multiples**
-- **BioPortal** : [bioportal.bioontology.org](https://bioportal.bioontology.org/) - Référentiel d'ontologies
-- **Gene Ontology** : [geneontology.org](http://geneontology.org/) - Ontologie des gènes et protéines
-- **EDAM Ontology** : [edamontology.org](http://edamontology.org/page) - Ontologie pour l'analyse de données
-- **CIDO** : [Nature Article](https://www.nature.com/articles/s41597-020-0523-6) - Ontologie des maladies infectieuses
-
-**Approches suggérées**
-- Créer une ontologie de domaine médical en OWL/RDF
-- Développer un moteur de raisonnement sémantique
-- Intégrer plusieurs sources de connaissances médicales
-- Implémenter une interface de recherche sémantique
-
-**Technologies pertinentes**
-- Protégé pour l'édition d'ontologies
-- RDFLib ou Apache Jena pour le traitement sémantique
-- SPARQL pour les requêtes sur graphes de connaissances
-- Python avec Flask pour l'interface web
-
----
-
-### 13. Problème des mariages stables (Stable Marriage)
-
-**Description du problème et contexte**
-L'appariement bipartite entre deux ensembles (étudiants et postes, ou hommes et femmes dans le problème classique) sur la base de préférences de classement mutuelles. Un matching est stable s'il n'existe pas deux agents qui se préfèreraient mutuellement à leurs attributions actuelles. L'algorithme de Gale & Shapley (1962) garantit une solution stable en temps polynomial via les propositions différées. On peut aussi formuler le problème en CSP : rechercher une affectation (bijection) sans paire bloquante.
-
-**Références multiples**
-- **Article fondateur** : Gale & Shapley (1962), _College Admissions and Stability_ - Algorithme des propositions différées
-- **Modélisation CP** : Manlove & O'Malley (CP 2008), [Modelling Stable Marriage with CP](https://www.dcs.gla.ac.uk/~davidm/pubs/7981.pdf) - Deux encodages CSP et lien avec Gale-Shapley
-- **Ouvrage de référence** : Gusfield & Irving (1989), _The Stable Marriage Problem: Structure and Algorithms_ - Théorie complète
-- **Applications réelles** : Hospital-Resident matching utilisé pour l'affectation des internes en médecine
-
-**Approches suggérées**
-- Modéliser comme un CSP avec variables d'affectation et contraintes de stabilité
-- Implémenter l'algorithme de Gale-Shapley pour comparaison avec approche CP
-- Établir l'arc-consistance équivalent à l'élimination des paires incompatibles
-- Explorer les variantes (capacités multiples, listes incomplètes, liens indifférents)
-
-**Technologies pertinentes**
-- Python avec implémentation classique de Gale-Shapley pour référence
-- OR-Tools ou MiniZinc pour la modélisation CSP alternative
-- NetworkX pour visualiser les préférences et appariements
-- Jupyter Notebook pour analyses comparatives des différentes approches
-
----
-
-### 14. Blockchain pour les dossiers médicaux COVID-19
-
-**Description du problème et contexte**
-La blockchain offre une solution décentralisée et sécurisée pour la gestion des dossiers médicaux COVID-19, garantissant l'intégrité, la traçabilité et le partage contrôlé des informations de santé tout en préservant la confidentialité des patients.
-
-**Références multiples**
-- **Blockchain santé** : [Medium Article](https://medium.com/pikciochain/how-is-blockchain-revolutionizing-healthcare-7f6d2a48e561) - Vue d'ensemble des applications
-- **Projet IBM** : [Medical Blockchain](https://github.com/IBM/Medical-Blockchain) - Implémentation de référence
-- **Passeports immunitaires** : [TechRxiv](https://www.techrxiv.org/articles/preprint/Blockchain-based_Solution_for_COVID-19_Digital_Medical_Passports_and_Immunity_Certificates/12800360/1) - Application COVID spécifique
-
-**Approches suggérées**
-- Concevoir une architecture blockchain pour dossiers médicaux
-- Implémenter des smart contracts pour le contrôle d'accès
-- Développer un système de chiffrement pour la confidentialité
-- Créer une interface patient/médecin pour la gestion des données
-
-**Technologies pertinentes**
-- Ethereum/Hyperledger Fabric pour la blockchain
-- Solidity pour les smart contracts
-- IPFS pour le stockage décentralisé
-- Web3.js pour l'interface web blockchain
-
----
-
-### 15. Composition musicale assistée par contraintes
-
-**Description du problème et contexte**
-La programmation par contraintes permet d'assister la composition musicale en générant ou complétant automatiquement une pièce musicale tout en respectant les règles harmoniques et de contrepoint de la musique tonale occidentale (style baroque par exemple). Chaque note de chaque voix (soprano, alto, ténor, basse) sur chaque temps est modélisée par une variable dont le domaine est l'ensemble des notes possibles dans la gamme, avec des contraintes musicales strictes pour éviter les erreurs classiques.
-
-**Références multiples**
-- **Ouvrage de référence** : Anders Torsten (2012), [Constraint Programming in Music](https://www.wiley.com/en-us/Constraint+Programming+in+Music-p-x000591252) (Wiley) - Théorie complète
-- **Publication récente** : [Expressing Musical Ideas with CP](https://www.ijcai.org/proceedings/2024/0858.pdf) (IJCAI 2024) - Modèle de l'harmonie tonale
-- **Recherche avancée** : Pachet & Roy (2014), "Non-Conformant Harmonization" - Créativité computationnelle
-- **Tutoriel** : [OpenMusic Tutorial on CP in Musical Composition](https://repmus.ircam.fr/openmusic/tutorials/constraint) (IRCAM 2016) - Applications pratiques
-
-**Approches suggérées**
-- Définir des variables représentant les notes pour chaque voix et chaque temps
-- Spécifier les contraintes correspondant aux règles musicales (harmonie, interdiction des parallèles)
-- Implémenter des contraintes de contrepoint (mouvement indépendant des voix, intervalles acceptables)
-- Développer un mode interactif permettant au compositeur de fixer certaines notes
-
-**Technologies pertinentes**
-- Python avec python-constraint ou OR-Tools pour le moteur de contraintes
-- MusicXML et music21 pour la notation et manipulation musicale
-- MIDI pour l'export et la lecture audio des compositions générées
-- Interface web avec notation interactive (VexFlow, abcjs) pour l'édition
-
----
-
-### 16. Coloration de graphe et de carte (Graph/Map Coloring)
-
-**Description du problème et contexte**
-Attribuer des couleurs à chaque nœud d'un graphe (p. ex. régions d'une carte) de sorte que deux nœuds adjacents n'aient pas la même couleur. On cherche à minimiser le nombre de couleurs utilisées ou à respecter un nombre fixé de couleurs. C'est un problème NP-difficile très connu, utilisé comme exemple classique en CSP. En programmation par contraintes, on crée une variable « couleur » pour chaque nœud avec un domaine de couleurs autorisées, puis on impose pour chaque arête que les deux extrémités aient des valeurs différentes (contrainte binaire).
-
-**Références multiples**
-- **Tutoriel AIMMS** : [Color a Map with Constraint Programming](https://how-to.aimms.com/Articles/226/226-color-a-map-with-constraint-programming.html) - Approche CP pour la coloration de carte
-- **Blog phabe.ch** : Map coloring problem in MiniZinc (2019) - Implémentation pratique
-- **Théorie** : Applegate & Cook (1989), _A Computational Study of Graph Coloring_ - Étude algorithmique
-- **Célèbre théorème** : On sait que 4 couleurs suffisent pour n'importe quelle carte planaire
-
-**Approches suggérées**
-- Créer une variable « couleur » pour chaque nœud avec domaine de couleurs autorisées
-- Imposer des contraintes binaires pour chaque arête (extrémités de couleurs différentes)
-- Utiliser la propagation de contraintes (node consistency, arc consistency) pour réduire l'espace de recherche
-- Explorer différentes heuristiques d'ordre de variable pour optimiser la résolution
-
-**Technologies pertinentes**
-- Python avec OR-Tools ou python-constraint pour la modélisation CSP
-- MiniZinc pour une approche déclarative
-- NetworkX pour la manipulation et visualisation de graphes
-- Graphviz ou Matplotlib pour la représentation visuelle des solutions
-
----
-
-### 17. Construction de mots-croisés par contraintes
-
-**Description du problème et contexte**
-La génération automatique de grilles de mots-croisés peut se formuler en problème de satisfaction de contraintes. On doit remplir une grille noire/blanche avec des mots qui se croisent de façon cohérente (les lettres qui se croisent doivent être identiques). Une approche consiste à pré-définir la grille (emplacements des cases noires) puis à affecter un mot de dictionnaire à chaque « slot » horizontal ou vertical. Les contraintes lient les slots entre eux via les lettres communes.
-
-**Références multiples**
-- **Guide CP** : [Generating Crossword Grids Using Constraint Programming](https://pedtsr.ca/2023/generating-crossword-grids-using-constraint-programming.html) - Modélisation pas à pas avec OR-Tools CP-SAT
-- **Solver Max** : Exemple de formulation MILP pour composer une grille de mots-croisés
-- **Référence historique** : G. Gervet (1995), _Crossword puzzle solving via constraint logic programming_ - Approche CLP
-- **Extensions** : On peut ajouter des contraintes de thématique ou maximiser un score
-
-**Approches suggérées**
-- Pré-définir la structure de la grille (emplacements des cases noires)
-- Affecter un mot de dictionnaire à chaque slot horizontal et vertical
-- Lier les slots via des contraintes sur les lettres communes (intersections)
-- Utiliser la propagation de contraintes pour éliminer rapidement les combinaisons impossibles
-
-**Technologies pertinentes**
-- OR-Tools CP-SAT pour la résolution efficace avec propagation
-- MiniZinc pour la modélisation déclarative
-- Dictionnaires de mots français/anglais structurés par longueur
-- Interface web pour l'édition et la visualisation interactive des grilles
-
----
-
-### 18. Équilibrage de chaîne d'assemblage (Assembly Line Balancing)
-
-**Description du problème et contexte**
-La répartition des tâches d'assemblage sur une séquence de postes de travail de manière à minimiser le nombre de postes (ou à respecter un temps de cycle donné). Chaque tâche a une durée et des précédences, et la somme des durées affectées à un poste ne doit pas dépasser le temps de cycle. Ce problème d'équilibrage est NP-difficile et présente de nombreuses variantes industrielles. Une modélisation classique utilise la programmation par contraintes ou en nombres entiers pour attribuer les tâches à des postes tout en respectant les contraintes d'ordre et de temps.
-
-**Références multiples**
-- **Benchmark Hexaly** : [Simple Assembly Line Balancing Problem (SALBP)](https://www.hexaly.com/benchmark/hexaly-vs-gurobi-vs-cpo-simple-assembly-line-balancing-problem-salbp) - Comparatif de solveurs MILP vs CP
-- **État de l'art** : Scholl & Becker (2006), _State-of-the-art in assembly line balancing_ - Revue complète
-- **Performance** : Des études montrent que même des solveurs génériques (CP Optimizer, Gurobi) peuvent traiter efficacement des cas de grande taille
-- **Applications** : Instances industrielles jusqu'à 1000 tâches
-
-**Approches suggérées**
-- Modéliser les variables d'affectation de tâches à des postes
-- Imposer les contraintes de précédence entre tâches
-- Respecter la contrainte de temps de cycle pour chaque poste
-- Optimiser le nombre de postes ou l'équilibre de charge
-
-**Technologies pertinentes**
-- IBM CP Optimizer ou Hexaly pour les instances industrielles complexes
-- OR-Tools CP-SAT ou Gurobi pour une approche hybride CP/MILP
-- MiniZinc pour la modélisation déclarative
-- Visualisation avec Gantt charts (Matplotlib, Plotly) pour analyser l'équilibrage
-
----
-
-### 19. Configuration de produit par contraintes / Configuration de systèmes
-
-**Description du problème et contexte**
-Ce sujet traite de la problématique de la configuration de produits ou de systèmes complexes (ordinateurs, automobiles, etc.) où le client peut personnaliser son produit en choisissant parmi un ensemble d'options. L'objectif est de garantir que les choix effectués sont compatibles entre eux grâce à l'application d'un grand nombre de règles de compatibilité et d'exclusion. Chaque option est représentée par une variable et les interdépendances sont modélisées par des contraintes logiques.
-
-**Références multiples**
-- **Implémentation** : [GitHub - or-tools-product-configurator](https://github.com/foohardt/or-tools-product-configurator) - Configuration de produit avec Google OR-Tools
-- **Théorie** : Mittal & Frayman (1989), "Towards a Generic Model of Configuration Tasks" (IJCAI) - Modèle générique
-- **Ouvrage** : Hotz, Felfernig & Stumptner (2014), "Configuration Knowledge Representation" - Représentation des connaissances
-- **Microsoft** : [Constraints in product configuration models](https://learn.microsoft.com/en-us/dynamics365/supply-chain/pim/build-product-configuration-model#constraints) - Documentation pratique
-
-**Approches suggérées**
-- Définir des variables pour chaque composant/option avec leurs domaines possibles
-- Imposer des contraintes d'exclusion ou d'implication entre options
-- Utiliser un solveur CSP pour propager les contraintes en temps réel
-- Développer une interface utilisateur interactive guidant vers des configurations valides
-
-**Technologies pertinentes**
-- OR-Tools CP-SAT pour la propagation de contraintes en temps réel
-- Python avec python-constraint pour prototypage rapide
-- Interface web (React/Vue) pour configuration interactive
-- Optimisation multi-critères pour minimiser coût ou maximiser performance
-
----
-
-### 20. Calendrier sportif (Sports Tournament Scheduling)
-
-**Description du problème et contexte**
-L'élaboration du calendrier de rencontres d'un championnat (par ex. tournoi toutes rondes en football), en respectant de multiples contraintes: alternance domicile/extérieur, disponibilités de stades, équité entre équipes (pas plus de X déplacements consécutifs, etc.). L'ordonnancement d'un tournoi « round-robin » peut se modéliser par contrainte avec des variables représentant qui rencontre qui à chaque journée, et des global constraints pour éviter les « breaks » (deux matchs Domicile ou Extérieur de suite).
-
-**Références multiples**
-- **Article CP** : Régin (CP 2008), _Minimizing breaks in sports schedules_ - Modèle CP pour tournoi rondes simples
-- **Revue** : Schaerf (1999), _Sports scheduling_ - Revue d'approches
-- **Compétition** : ITC 2021 Sports Scheduling Track - Compétition utilisant CP et métaheuristiques
-- **Preuves théoriques** : La CP a permis de prouver des bornes théoriques, comme le nombre minimal de « breaks » (n–2 pour n équipes)
-
-**Approches suggérées**
-- Modéliser avec des variables représentant les rencontres à chaque journée
-- Utiliser des global constraints pour gérer les contraintes d'alternance domicile/extérieur
-- Implémenter des contraintes d'équité (nombre de déplacements, répartition des adversaires)
-- Optimiser selon plusieurs critères (minimisation des breaks, équilibre du calendrier)
-
-**Technologies pertinentes**
-- IBM CP Optimizer ou OR-Tools CP-SAT pour les global constraints
-- MiniZinc pour la modélisation déclarative de contraintes complexes
-- Python pour l'interfaçage et la génération de données
-- Visualisation du calendrier avec bibliothèques de planning (FullCalendar, Gantt)
-
----
-
-### 21. Problème de tournées de véhicules (VRP) / Optimisation de tournées de livraison « vertes »
-
-**Description du problème et contexte**
-La planification optimale des tournées d'une flotte de véhicules chargés de livrer des colis ou des marchandises. L'objectif principal est de minimiser la distance parcourue ou le coût total, tout en respectant des contraintes de capacités, fenêtres temporelles, et pour la version « verte », les contraintes liées à l'autonomie des véhicules électriques, la nécessité de passages par des stations de recharge, et la minimisation de l'empreinte carbone.
-
-**Références multiples**
-- **Introduction** : [PyVRP documentation](https://pyvrp.org/setup/introduction_to_vrp.html) - Introduction complète au VRP
-- **Guide pratique** : [Solving the Vehicle Routing Problem (Routific, 2024)](https://www.routific.com/blog/what-is-the-vehicle-routing-problem) - Approches de résolution
-- **Ouvrage** : Toth & Vigo (2014), _Vehicle Routing: Problems, Methods, and Applications_ (SIAM) - Référence complète
-- **VRP électrique** : [A Constraint Programming Approach to Electric Vehicle Routing](https://www.researchgate.net/publication/333231312_A_Constraint_Programming_Approach_to_Electric_Vehicle_Routing_with_Time_Windows) - Approche CP pour véhicules électriques
-
-**Approches suggérées**
-- Définir des variables pour l'ordre de passage des clients sur chaque tournée
-- Implémenter des contraintes de routing, capacité et fenêtres temporelles
-- Pour les véhicules électriques, intégrer les contraintes d'autonomie et de recharge
-- Utiliser un solveur CSP combiné avec des heuristiques de recherche locale (Large Neighborhood Search)
-
-**Technologies pertinentes**
-- OR-Tools CP-SAT pour la modélisation et résolution avec propagation avancée
-- MiniZinc pour une approche déclarative
-- PyVRP pour des implémentations spécialisées
-- Visualisation de tournées avec Folium, Leaflet ou Google Maps API
-
----
-
-### 22. Argumentation abstraite de Dung
-
-**Description du problème et contexte**
-Les frameworks d'argumentation abstraite de Dung (AF) fournissent un cadre mathématique pour représenter et évaluer des arguments en conflit. Le module `arg.dung` de TweetyProject offre une implémentation complète de ce formalisme, permettant de construire des graphes d'arguments et d'attaques (`DungTheory`), et de calculer l'acceptabilité des arguments selon différentes sémantiques (admissible, complète, préférée, stable, fondée, idéale, semi-stable, CF2, etc.).
-
-**Références multiples**
-- **Article fondateur** : Dung (1995), _On the Acceptability of Arguments and its Fundamental Role in Nonmonotonic Reasoning_ - Base théorique
-- **Ouvrage** : _Abstract Argumentation Frameworks_ (2022) - Théorie complète
-- **Recherche** : _Computational Problems in Abstract Argumentation_ (2023) - Aspects algorithmiques
-- **TweetyProject** : [Documentation arg.dung](http://tweetyproject.org/api/latest-release/net/sf/tweety/arg/dung/package-summary.html) - Implémentation Java
-
-**Approches suggérées**
-- Construire des graphes d'arguments et d'attaques avec `DungTheory`
-- Implémenter le calcul d'extensions selon différentes sémantiques (admissible, complète, préférée, stable)
-- Développer des algorithmes pour déterminer l'acceptabilité des arguments
-- Créer une visualisation interactive des graphes d'argumentation
-
-**Technologies pertinentes**
-- TweetyProject `arg.dung` pour la modélisation et le calcul d'extensions
-- NetworkX ou Graphviz pour la visualisation de graphes
-- Python avec JPype pour l'intégration Java-Python
-- Jupyter Notebook pour les démonstrations interactives
-
----
-
-### 23. Argumentation basée sur les hypothèses (ABA)
-
-**Description du problème et contexte**
-L'argumentation basée sur les hypothèses (ABA) est un framework qui représente les arguments comme des déductions à partir d'hypothèses. Le module `arg.aba` de TweetyProject permet de modéliser des systèmes où les arguments sont construits à partir de règles d'inférence et d'hypothèses, avec des mécanismes pour gérer les attaques entre arguments dérivés.
-
-**Références multiples**
-- **Théorie** : _Assumption-Based Argumentation_ (2022) - Fondements formels
-- **Algorithmes** : _Computational Aspects of Assumption-Based Argumentation_ (2023) - Méthodes de calcul
-- **Extension** : _ABA+: Assumption-Based Argumentation with Preferences_ (2022) - Gestion des préférences
-- **TweetyProject** : [Documentation arg.aba](http://tweetyproject.org/api/latest-release/net/sf/tweety/arg/aba/package-summary.html) - Implémentation
-
-**Approches suggérées**
-- Modéliser des bases de connaissances avec règles d'inférence et hypothèses
-- Implémenter la construction d'arguments par déduction
-- Développer des mécanismes de détection d'attaques entre arguments
-- Calculer l'acceptabilité des arguments selon les sémantiques ABA
-
-**Technologies pertinentes**
-- TweetyProject `arg.aba` pour la modélisation ABA
-- Logiques non-monotones pour le raisonnement
-- Python pour l'interface et la visualisation
-- Prolog pour une implémentation alternative des règles
-
----
-
-### 24. Argumentation structurée (ASPIC+)
-
-**Description du problème et contexte**
-ASPIC+ est un framework d'argumentation structurée qui combine la logique formelle avec des mécanismes de gestion des conflits et des préférences. Il permet de construire des arguments à partir de bases de connaissances contenant des axiomes et des règles (strictes et défaisables), et de modéliser différents types d'attaques (rebutting, undercutting, undermining).
-
-**Références multiples**
-- **Framework** : _ASPIC+: An Argumentation Framework for Structured Argumentation_ (2022) - Spécification complète
-- **Théorie** : _Rationality Postulates for Structured Argumentation_ (2023) - Propriétés formelles
-- **Traduction** : _From Natural Language to ASPIC+_ (2022) - Méthodes de formalisation
-- **Applications** : Travaux sur l'argumentation juridique et médicale avec ASPIC+
-
-**Approches suggérées**
-- Modéliser des bases de connaissances avec axiomes, règles strictes et règles défaisables
-- Implémenter la construction d'arguments structurés
-- Gérer les préférences entre règles et arguments
-- Analyser les différents types d'attaques (rebutting, undercutting, undermining)
-
-**Technologies pertinentes**
-- Implémentation ASPIC+ (bibliothèques existantes ou développement custom)
-- Logique du premier ordre pour la représentation des connaissances
-- Python ou Java pour l'implémentation
-- Visualisation des arguments structurés et de leurs relations
-
----
-
-### 25. Abstract Dialectical Frameworks (ADF)
-
-**Description du problème et contexte**
-Les ADF généralisent les frameworks d'argumentation abstraite de Dung en associant à chaque argument une condition d'acceptation. Le module `arg.adf` de TweetyProject implémente ce formalisme avancé où chaque argument est associé à une formule propositionnelle (sa condition d'acceptation) qui détermine son statut en fonction de l'état des autres arguments. Cette approche permet de modéliser des dépendances complexes comme le support, l'attaque conjointe, ou des combinaisons arbitraires de relations.
-
-**Références multiples**
-- **Article fondateur** : Brewka et al. (2013), _Abstract Dialectical Frameworks_ - Définition formelle
-- **Implémentation** : _Implementing KR Approaches with Tweety_ (2018) - Guide pratique
-- **TweetyProject** : [Documentation arg.adf](http://tweetyproject.org/api/latest-release/net/sf/tweety/arg/adf/package-summary.html) - API complète
-- **Solveurs** : Intégration avec solveurs SAT incrémentaux pour le calcul efficace
-
-**Approches suggérées**
-- Définir des arguments avec conditions d'acceptation personnalisées (formules propositionnelles)
-- Modéliser des relations complexes (support, attaque conjointe, dépendances conditionnelles)
-- Utiliser des solveurs SAT incrémentaux pour calculer les extensions
-- Visualiser les ADF avec leurs conditions d'acceptation
-
-**Technologies pertinentes**
-- TweetyProject `arg.adf` pour la modélisation
-- Solveurs SAT (SAT4J, Lingeling) pour le calcul d'extensions
-- Logique propositionnelle pour les conditions d'acceptation
-- Visualisation de graphes avec annotations de formules
-
----
-
-### 26. Classification des sophismes
-
-**Description du problème et contexte**
-Les sophismes sont des erreurs de raisonnement qui peuvent sembler valides mais qui violent les principes de la logique. Une taxonomie structurée des sophismes est essentielle pour développer des systèmes de détection automatique et d'analyse critique des arguments. Ce projet vise à enrichir et structurer la classification des sophismes en intégrant des approches historiques et contemporaines.
-
-**Références multiples**
-- **Ouvrage classique** : _Fallacies: Classical and Contemporary Readings_ (édition mise à jour, 2022) - Taxonomie complète
-- **Guide moderne** : _Logical Fallacies: The Definitive Guide_ (2023) - Définitions et exemples
-- **Détection** : _Automated Detection of Fallacies in Arguments_ (2022) - Approches computationnelles
-- **Base de données** : Corpus annotés de sophismes pour l'apprentissage automatique
-
-**Approches suggérées**
-- Développer une taxonomie hiérarchique des sophismes (formels, informels, rhétoriques)
-- Créer une base de données d'exemples annotés pour chaque type de sophisme
-- Implémenter des règles de détection basées sur des patterns linguistiques et logiques
-- Utiliser l'apprentissage automatique pour la classification automatique
-
-**Technologies pertinentes**
-- NLP (spaCy, NLTK) pour l'analyse linguistique
-- Machine Learning (scikit-learn, transformers) pour la classification
-- Base de données (SQL, MongoDB) pour le stockage des exemples
-- Interface web pour la visualisation et l'annotation
-
----
-
-### 27. Taxonomie des schémas argumentatifs
-
-**Description du problème et contexte**
-Les schémas argumentatifs sont des modèles récurrents de raisonnement utilisés dans l'argumentation quotidienne. Les travaux de Walton identifient plus de 60 schémas argumentatifs courants, chacun avec ses questions critiques associées. Ce projet vise à développer une taxonomie complète et structurée de ces schémas pour faciliter leur identification et leur analyse automatique.
-
-**Références multiples**
-- **Ouvrage de référence** : Walton, Reed & Macagno, _Argumentation Schemes_ (édition mise à jour, 2022) - Catalogue complet
-- **Identification** : _Automatic Identification of Argument Schemes_ (2023) - Méthodes computationnelles
-- **Modélisation** : _A Computational Model of Argument Schemes_ (2022) - Formalisation
-- **Applications** : Travaux sur l'utilisation des schémas dans l'analyse de débats
-
-**Approches suggérées**
-- Structurer une taxonomie hiérarchique des schémas argumentatifs de Walton
-- Associer à chaque schéma ses questions critiques et des exemples concrets
-- Développer des méthodes de reconnaissance automatique de schémas dans les textes
-- Créer une interface pour explorer et interroger la taxonomie
-
-**Technologies pertinentes**
-- Ontologies (OWL, Protégé) pour la structuration formelle
-- NLP pour l'extraction et la classification de schémas
-- Base de connaissances (Neo4j, RDF) pour les relations entre schémas
-- Visualisation interactive des schémas et de leurs relations
-
----
-
-### 28. Agent de détection de sophismes et biais cognitifs
-
-**Description du problème et contexte**
-La détection des sophismes et des biais cognitifs est essentielle pour évaluer la qualité argumentative et lutter contre la désinformation. Ce sujet vise à améliorer l'agent Informal pour détecter plus précisément différents types de sophismes et fournir des explications claires sur leur nature, tout en intégrant des capacités d'analyse des biais cognitifs pour identifier les mécanismes psychologiques exploités dans les arguments fallacieux.
-
-**Références multiples**
-- **Détection automatisée** : _Automated Fallacy Detection_ (2022) - Méthodes computationnelles
-- **Analyse rhétorique** : _Computational Approaches to Rhetorical Analysis_ (2023) - Techniques d'analyse
-- **Explicabilité** : _Explainable Fallacy Detection_ (2022) - Systèmes explicables
-- **Biais cognitifs** : _Cognitive Biases in Argumentation_ (2024) - Mécanismes psychologiques
-- **Désinformation** : _Psychological Mechanisms of Misinformation_ (2023) - Manipulation informationnelle
-
-**Approches suggérées**
-- Développer des techniques spécifiques pour chaque type de sophisme
-- Intégrer l'ontologie des sophismes pour améliorer la classification
-- Créer un système d'explication des détections avec contexte psychologique
-- Analyser l'impact persuasif des sophismes détectés
-- Intégrer avec des systèmes de lutte contre la désinformation
-
-**Technologies pertinentes**
-- NLP avancé (spaCy, transformers) pour l'analyse linguistique
-- Classification multi-classes avec deep learning
-- Modèles de psychologie cognitive pour l'analyse des biais
-- Systèmes d'explication IA (LIME, SHAP) pour la transparence
-
----
-
-### 29. Agent de génération de contre-arguments
-
-**Description du problème et contexte**
-La génération de contre-arguments permet d'évaluer la robustesse des arguments en produisant automatiquement des réfutations pertinentes et solides. Ce système peut aider dans les débats, l'analyse critique et l'amélioration de la qualité argumentative en identifiant les vulnérabilités des arguments.
-
-**Références multiples**
-- **Génération automatique** : _Automated Counter-Argument Generation_ (2022) - Méthodes de génération
-- **Argumentation stratégique** : _Strategic Argumentation in Dialogue_ (2023) - Stratégies de réfutation
-- **Génération contrôlée** : _Controlled Text Generation for Argumentation_ (2022) - Techniques de contrôle
-- **Évaluation** : _Quality Assessment of Generated Arguments_ (2023) - Métriques d'évaluation
-
-**Approches suggérées**
-- Implémenter différentes stratégies de contre-argumentation basées sur les frameworks formels
-- Analyser les vulnérabilités argumentatives pour cibler les points faibles
-- Développer des techniques de génération de texte contrôlée
-- Créer un système d'évaluation de la qualité des contre-arguments générés
-
-**Technologies pertinentes**
-- LLMs (GPT, Claude) pour la génération de texte naturel
-- Frameworks d'argumentation (Tweety) pour l'analyse formelle
-- Fine-tuning de modèles sur corpus de débats
-- Évaluation automatique de la pertinence et de la force des arguments
-
----
-
-### 30. Intégration de LLMs locaux légers
-
-**Description du problème et contexte**
-Les LLMs locaux permettent une analyse plus rapide et confidentielle sans dépendance aux API externes. Ce projet explore l'utilisation de modèles de langage locaux de petite taille (comme Qwen 3) pour effectuer l'analyse argumentative, en optimisant pour l'inférence rapide tout en maintenant une qualité d'analyse acceptable.
-
-**Références multiples**
-- **Qwen 3** : Documentation officielle - Modèles légers récents
-- **Optimisation** : _Efficient Inference for Large Language Models_ (2023) - Techniques d'optimisation
-- **Quantization** : _Model Quantization Techniques_ (2024) - Réduction de taille
-- **Benchmarks** : HELM - Évaluation comparative des performances
-- **Distillation** : _Knowledge Distillation for LLMs_ (2023) - Transfert de connaissances
-
-**Approches suggérées**
-- Intégrer des modèles légers (Qwen 3) avec llama.cpp
-- Appliquer des techniques de quantization (GGUF format)
-- Optimiser l'inférence pour des performances temps réel
-- Comparer les performances avec les modèles via API cloud
-
-**Technologies pertinentes**
-- llama.cpp pour l'inférence optimisée
-- GGUF format pour les modèles quantifiés
-- Python bindings pour l'intégration
-- Techniques de prompt engineering pour maximiser la qualité
-
----
-
-### 31. Fact-checking automatisé et détection de désinformation
-
-**Description du problème et contexte**
-La vérification des faits et la détection de désinformation sont essentielles pour évaluer la solidité factuelle des arguments et protéger l'intégrité du débat public. Ce système devrait pouvoir extraire les affirmations vérifiables, rechercher des informations pertinentes, évaluer la fiabilité des sources, identifier les techniques de manipulation informationnelle, et analyser la propagation de la désinformation.
-
-**Références multiples**
-- **Fact-checking** : _Automated Fact-Checking: Current Status and Future Directions_ (2022) - État de l'art
-- **Extraction** : _Claim Extraction and Verification_ (2023) - Méthodes d'extraction
-- **Campagnes coordonnées** : _Detecting Coordinated Disinformation Campaigns_ (2024) - Détection de patterns
-- **Désordre informationnel** : _Information Disorder: Toward an interdisciplinary framework_ (2023) - Cadre théorique
-- **Crédibilité** : _Source Credibility Assessment in the Era of Fake News_ (2024) - Évaluation des sources
-
-**Approches suggérées**
-- Extraire automatiquement les affirmations vérifiables dans les textes
-- Créer un moteur de recherche spécialisé pour trouver des sources fiables
-- Implémenter un système d'évaluation de la fiabilité des sources
-- Détecter les patterns typiques de désinformation et fake news
-- Analyser la propagation de l'information à travers différents canaux
-
-**Technologies pertinentes**
-- NLP avancé pour l'extraction d'affirmations
-- Information retrieval pour la recherche de sources
-- Machine learning pour l'évaluation de fiabilité
-- Network analysis pour la propagation d'information
-- API de bases de données de fact-checking existantes
-
----
-
-### 32. Développement d'un serveur MCP pour l'analyse argumentative
-
-**Description du problème et contexte**
-Le Model Context Protocol (MCP) permet d'exposer des capacités d'IA à d'autres applications de manière standardisée. Ce projet vise à publier le travail collectif sous forme d'un serveur MCP utilisable dans des applications comme Roo, Claude Desktop ou Semantic Kernel, rendant l'analyse argumentative accessible à un large écosystème d'outils.
-
-**Références multiples**
-- **Spécification MCP** : Model Context Protocol (version 2023-2024) - Protocole officiel
-- **Interopérabilité** : _Building Interoperable AI Systems_ (2023) - Systèmes interconnectés
-- **API Design** : _RESTful API Design: Best Practices_ (2022) - Bonnes pratiques
-- **Documentation** : Exemples d'implémentation MCP existants
-
-**Approches suggérées**
-- Implémenter les spécifications MCP pour exposer les fonctionnalités d'analyse
-- Créer des outils MCP pour extraction, détection de sophismes, évaluation
-- Développer des ressources MCP donnant accès aux taxonomies et exemples
-- Assurer la compatibilité avec différentes applications clientes
-
-**Technologies pertinentes**
-- MCP SDK pour l'implémentation du protocole
-- JSON Schema pour la définition des outils et ressources
-- API REST/WebSocket pour la communication
-- Documentation OpenAPI/Swagger pour l'API
-
----
-
-### 33. Serveur MCP pour les frameworks d'argumentation Tweety
-
-**Description du problème et contexte**
-Les frameworks d'argumentation de Tweety offrent des fonctionnalités puissantes mais leur utilisation nécessite une connaissance approfondie de l'API Java. Un serveur MCP dédié permettrait d'exposer ces fonctionnalités de manière standardisée et accessible, facilitant l'utilisation des différents frameworks (Dung, bipolaire, pondéré, ADF, etc.) depuis n'importe quelle application compatible MCP.
-
-**Références multiples**
-- **Spécification MCP** : Model Context Protocol (version 2023-2024) - Protocole
-- **TweetyProject** : Documentation de l'API - Frameworks d'argumentation
-- **Interopérabilité** : _Building Interoperable AI Systems_ (2023) - Systèmes interconnectés
-- **Java-Python** : JPype documentation - Bridge Java-Python
-
-**Approches suggérées**
-- Développer un serveur MCP spécifique pour les modules `arg.*` de Tweety
-- Exposer des outils pour construction, analyse et visualisation de frameworks
-- Implémenter des ressources MCP pour les sémantiques d'acceptabilité
-- Fournir des exemples d'intégration avec différentes applications
-
-**Technologies pertinentes**
-- MCP SDK pour le serveur
-- JPype pour l'interface Java-Python
-- TweetyProject pour les frameworks d'argumentation
-- JSON Schema pour les définitions d'outils
-
----
-
-### 34. Interface web pour l'analyse argumentative
-
-**Description du problème et contexte**
-Une interface web intuitive facilite l'utilisation du système d'analyse argumentative par un large public. Cette interface devrait permettre de visualiser et d'interagir avec les analyses argumentatives de manière fluide, avec des fonctionnalités de navigation, filtrage, recherche et annotation pour explorer les structures argumentatives complexes.
-
-**Références multiples**
-- **Visualisation d'arguments** : _Argument Visualization Tools in the Classroom_ (2022) - Applications pédagogiques
-- **UX pour systèmes complexes** : _User Experience Design for Complex Systems_ (2023) - Design patterns
-- **Inspiration** : Interfaces de Kialo ou Arguman (études de cas, 2022) - Exemples existants
-- **Interaction** : _Interactive Argument Analysis Interfaces_ (2023) - Techniques d'interaction
-
-**Approches suggérées**
-- Créer une interface moderne avec React/Vue.js/Angular
-- Implémenter des visualisations interactives avec D3.js ou Cytoscape.js
-- Développer des fonctionnalités de navigation et d'exploration intuitive
-- Intégrer des capacités d'annotation et de commentaire collaboratif
-
-**Technologies pertinentes**
-- Framework frontend moderne (React, Vue, Angular)
-- Bibliothèques de visualisation (D3.js, Cytoscape.js)
-- Design systems (Material UI, Tailwind CSS)
-- WebSockets pour les interactions temps réel
-
----
-
-### 35. Visualisation avancée de graphes d'argumentation
-
-**Description du problème et contexte**
-La visualisation des graphes d'argumentation et des réseaux de désinformation aide à comprendre les relations complexes entre arguments et à identifier les patterns de propagation. Ce projet vise à développer des outils de visualisation avancés pour différents frameworks d'argumentation, avec des algorithmes de layout optimisés et des techniques de visualisation cognitive.
-
-**Références multiples**
-- **COMMA** : _Computational Models of Argument_ (conférences 2022-2024) - État de l'art
-- **Visualisation** : Travaux de Floris Bex sur la visualisation d'arguments (2022-2023)
-- **Graph Drawing** : _Graph Drawing: Algorithms for the Visualization of Graphs_ (2023) - Algorithmes
-- **Désinformation** : _Visual Analytics for Disinformation Detection_ (2024) - Analyse visuelle
-- **Cognition** : _Cognitive Visualization Techniques for Complex Arguments_ (2023) - Techniques cognitives
-
-**Approches suggérées**
-- Implémenter des algorithmes de layout optimisés pour graphes argumentatifs
-- Développer des visualisations temporelles pour la propagation d'information
-- Créer des techniques de visualisation cognitive pour faciliter la compréhension
-- Intégrer avec des systèmes de détection de désinformation
-
-**Technologies pertinentes**
-- Bibliothèques de visualisation (Sigma.js, Cytoscape.js, vis.js, D3.js)
-- Algorithmes de layout de graphes (force-directed, hierarchical)
-- Visualisation temporelle pour l'analyse de propagation
-- Techniques d'interaction avancées (zoom, pan, filtering)
-
----
-
-### 36. Système de débat assisté par IA
-
-**Description du problème et contexte**
-Un système de débat assisté par IA peut aider à structurer et améliorer les échanges argumentatifs en temps réel. Cette application complète permettrait à des utilisateurs de débattre avec l'assistance d'agents IA qui analysent leurs arguments, identifient les faiblesses, suggèrent des contre-arguments, et aident à structurer les débats de manière constructive.
-
-**Références multiples**
-- **COMMA** : _Computational Models of Argument_ - Base théorique
-- **Plateforme Kialo** : Étude de cas - Débat structuré en ligne
-- **Technologies d'argumentation** : Recherches de Chris Reed sur les technologies d'argumentation
-- **Débat IA** : _AI-Assisted Argumentation and Debate_ (2023) - Applications pratiques
-
-**Approches suggérées**
-- Utiliser des LLMs pour l'analyse et la génération d'arguments
-- Intégrer les frameworks d'argumentation Tweety pour l'évaluation formelle
-- Développer une interface web interactive pour les débats
-- Implémenter des mécanismes d'assistance contextuelle
-
-**Technologies pertinentes**
-- LLMs pour génération et analyse d'arguments
-- TweetyProject pour évaluation formelle
-- Framework frontend pour interface interactive
-- WebSockets pour communication temps réel
-
----
-
-### 37. Plateforme éducative d'apprentissage de l'argumentation
-
-**Description du problème et contexte**
-L'éducation à l'argumentation et à la pensée critique est essentielle pour former des citoyens capables de naviguer dans un environnement informationnel complexe. Cette plateforme complète intégrerait des parcours d'apprentissage personnalisés, des tutoriels interactifs, des exercices pratiques, des évaluations adaptatives, et des mécanismes de gamification pour favoriser l'engagement.
-
-**Références multiples**
-- **Analytics** : _Learning Analytics for Argumentation Skills_ (2023) - Suivi des compétences
-- **Gamification** : _Gamification in Critical Thinking Education_ (2024) - Motivation et engagement
-- **Apprentissage adaptatif** : _Adaptive Learning Systems: Design and Implementation_ (2023) - Personnalisation
-- **Compétences** : _Measuring and Developing Argumentation Skills_ (2022) - Évaluation
-- **Désinformation** : _Educational Interventions Against Misinformation_ (2024) - Lutte contre fake news
-
-**Approches suggérées**
-- Créer des tutoriels interactifs sur les sophismes et biais cognitifs
-- Développer des exercices pratiques avec feedback automatisé
-- Implémenter un système d'évaluation des compétences argumentatives
-- Intégrer des mécanismes de gamification (badges, niveaux, défis)
-- Créer un tableau de bord de suivi des apprentissages
-
-**Technologies pertinentes**
-- LMS (Learning Management System) ou développement custom
-- Gamification engine (badges, points, leaderboards)
-- Analytics pour le suivi des progressions
-- Système d'évaluation automatisée basé sur IA
-
----
-
-### 38. Système d'analyse de débats politiques
-
-**Description du problème et contexte**
-L'analyse des débats politiques et la surveillance des médias permettent d'évaluer objectivement la qualité argumentative des discours et de détecter les campagnes de désinformation dans l'espace public. Ce système complet analyserait les arguments, sophismes et stratégies rhétoriques utilisées, fournirait une évaluation factuelle, détecterait les tendances émergentes et analyserait la propagation des narratifs à travers différents médias.
-
-**Références multiples**
-- **Analyse politique** : _Computational Approaches to Analyzing Political Discourse_ de Hovy et Lim
-- **Fact-checking** : Projets comme FactCheck.org ou PolitiFact (études de cas, 2022)
-- **Automatisation** : _Automated Fact-Checking: Current Status and Future Directions_ (2022)
-- **Surveillance médiatique** : _Media Monitoring in the Digital Age_ (2024)
-- **Comportement inauthentique** : _Detecting Coordinated Inauthentic Behavior in Social Media_ (2023)
-- **Diffusion** : _Temporal Analysis of Information Diffusion_ (2024)
-
-**Approches suggérées**
-- Développer une analyse de débats en temps réel
-- Créer une plateforme de surveillance médiatique multi-sources
-- Implémenter la détection de sophismes, biais et stratégies rhétoriques
-- Intégrer le fact-checking automatisé des affirmations
-- Analyser la propagation des arguments dans les médias
-- Détecter les campagnes coordonnées de désinformation
-
-**Technologies pertinentes**
-- NLP en temps réel pour l'analyse de discours
-- Fact-checking automatisé avec recherche d'information
-- Analyse de sentiment et de rhétorique
-- Détection de campagnes coordonnées avec network analysis
-- Visualisation de propagation d'information
-
----
-
-### 39. ArgumentuShield: Protection cognitive contre la désinformation
-
-**Description du problème et contexte**
-Face à la sophistication croissante des techniques de désinformation, ce système innovant vise à renforcer les défenses cognitives des individus contre la manipulation informationnelle. ArgumentuShield intègre des méthodes d'inoculation cognitive, des outils personnalisés d'analyse critique adaptés aux vulnérabilités spécifiques de chaque utilisateur, des interfaces qui favorisent la réflexion critique, et des mécanismes d'apprentissage continu adaptatifs.
-
-**Références multiples**
-- **Inoculation** : Roozenbeek & van der Linden (2019), _The fake news game: actively inoculating against the risk of misinformation_
-- **Correction** : Lewandowsky et al. (2012), _Misinformation and Its Correction: Continued Influence and Successful Debiasing_
-- **Techniques** : Cook et al. (2017), _Neutralizing misinformation through inoculation: Exposing misleading argumentation techniques_
-- **Psychologie** : _Cognitive Psychology of Misinformation Resistance_ (2023)
-
-**Approches suggérées**
-- Développer des méthodes d'inoculation cognitive contre les techniques de manipulation
-- Créer des outils personnalisés analysant les vulnérabilités spécifiques des utilisateurs
-- Concevoir des interfaces qui favorisent la réflexion critique sans friction
-- Implémenter des mécanismes d'apprentissage continu adaptatifs
-- Intégrer ArgumentuMind pour la modélisation cognitive
-
-**Technologies pertinentes**
-- Machine learning pour l'analyse des vulnérabilités personnelles
-- Techniques d'inoculation basées sur la psychologie cognitive
-- Interfaces adaptatives favorisant la réflexion
-- Apprentissage par renforcement pour l'adaptation continue
-- Intégration avec systèmes de détection de désinformation
-
-## 📤 Instructions de soumission
+Bon scheduling ! 🏆⚽
