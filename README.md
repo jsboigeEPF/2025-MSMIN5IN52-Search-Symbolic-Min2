@@ -268,10 +268,6 @@ lsof -i :8000
 - Augmenter le temps de résolution
 - Pour grandes instances (>20 équipes), le problème devient très difficile
 
-## 👥 Auteurs
-
-Projet MSMIN5IN52 - Recherche symbolique  
-Polytech Nice Sophia (2025)
 
 ## 📝 Licence
 
