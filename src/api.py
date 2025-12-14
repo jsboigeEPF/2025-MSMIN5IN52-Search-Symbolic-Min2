@@ -16,18 +16,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configuration CORS
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
+# Configuration CORS - permet tous les origins en développement
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],  # Autorise toutes les origines (Docker, localhost, etc.)
+    allow_credentials=False,  # Doit être False si allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )

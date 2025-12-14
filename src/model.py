@@ -49,16 +49,27 @@ class SchedulerModel:
                 if not has_match:
                     self.model.Add(self.home[(t,i)] == 0)
 
-        # breaks
-        for t in range(1, self.rounds):
-            for i in range(self.n):
-                D = self.model.NewBoolVar(f"D_r{t}_team{i}")
-                # D >= home_t - home_t-1 ; D >= home_t-1 - home_t
-                self.model.Add(self.home[(t,i)] - self.home[(t-1,i)] <= D)
-                self.model.Add(self.home[(t-1,i)] - self.home[(t,i)] <= D)
-                S = self.model.NewBoolVar(f"break_r{t}_team{i}")
-                self.model.Add(S + D == 1)  # S = 1 - D
-                self.breaks[(t,i)] = S
+        # Breaks : Un break se produit quand une équipe joue 2 matchs du même type
+        # MÊME S'IL Y A UN BYE ENTRE LES DEUX
+        # On compare chaque match avec le dernier match joué (en sautant les byes)
+        for i in range(self.n):
+            # Pour chaque équipe, on va comparer chaque match avec le précédent match joué
+            # On stocke les tours où l'équipe joue
+            match_rounds = [t for t in range(self.rounds) if any(i in (a, b) for (a, b) in self.pair_schedule[t])]
+            
+            # Pour chaque paire de matchs consécutifs (en termes de matchs, pas de tours)
+            for idx in range(1, len(match_rounds)):
+                t_current = match_rounds[idx]
+                t_previous = match_rounds[idx - 1]
+                
+                # Break si même statut entre ces deux matchs
+                same_status = self.model.NewBoolVar(f"same_status_m{idx}_team{i}")
+                diff = self.model.NewBoolVar(f"diff_m{idx}_team{i}")
+                self.model.AddAbsEquality(diff, self.home[(t_current, i)] - self.home[(t_previous, i)])
+                self.model.Add(same_status + diff == 1)
+                
+                # Stocker le break avec la clé du tour actuel
+                self.breaks[(t_current, i)] = same_status
 
         # max consecutive away windows
         for i in range(self.n):
@@ -112,16 +123,24 @@ class SchedulerModel:
             team_breaks = sum(solver.Value(self.breaks[(t,i)]) for t in range(1, self.rounds) if (t,i) in self.breaks)
             stats['breaks_per_team'][self.teams[i]] = int(team_breaks)
             
-            # Balance domicile/extérieur
-            home_count = sum(solver.Value(self.home[(t,i)]) for t in range(self.rounds))
-            away_count = self.rounds - int(home_count)
+            # Balance domicile/extérieur (compter seulement les matchs réels)
+            home_count = 0
+            away_count = 0
+            for t in range(self.rounds):
+                has_match = any(i in (a, b) for (a, b) in self.pair_schedule[t])
+                if has_match:
+                    if solver.Value(self.home[(t,i)]) == 1:
+                        home_count += 1
+                    else:
+                        away_count += 1
+            
             stats['home_away_balance'][self.teams[i]] = {
                 'home': int(home_count),
-                'away': away_count
+                'away': int(away_count)
             }
             
             # Nombre de déplacements (matchs à l'extérieur)
-            stats['total_travel_distance'][self.teams[i]] = away_count
+            stats['total_travel_distance'][self.teams[i]] = int(away_count)
             
             # Variété des adversaires affrontés
             opponents_faced = set()
@@ -133,21 +152,29 @@ class SchedulerModel:
                         opponents_faced.add(a)
             stats['opponent_variety'][self.teams[i]] = len(opponents_faced)
             
-            # Séquences consécutives
+            # Séquences consécutives (seulement pour les matchs réels, pas les byes)
             max_away_streak = 0
             max_home_streak = 0
             current_away = 0
             current_home = 0
             
             for t in range(self.rounds):
-                if solver.Value(self.home[(t,i)]) == 1:
-                    current_home += 1
-                    current_away = 0
-                    max_home_streak = max(max_home_streak, current_home)
+                # Vérifier si l'équipe joue ce tour
+                has_match = any(i in (a, b) for (a, b) in self.pair_schedule[t])
+                
+                if has_match:
+                    if solver.Value(self.home[(t,i)]) == 1:
+                        current_home += 1
+                        current_away = 0
+                        max_home_streak = max(max_home_streak, current_home)
+                    else:
+                        current_away += 1
+                        current_home = 0
+                        max_away_streak = max(max_away_streak, current_away)
                 else:
-                    current_away += 1
+                    # Bye : réinitialiser les compteurs
+                    current_away = 0
                     current_home = 0
-                    max_away_streak = max(max_away_streak, current_away)
             
             stats['consecutive_away'][self.teams[i]] = max_away_streak
             stats['consecutive_home'][self.teams[i]] = max_home_streak
