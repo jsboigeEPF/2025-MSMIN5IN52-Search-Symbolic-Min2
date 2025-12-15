@@ -1,0 +1,87 @@
+/* Styles personnalisés pour la documentation */
+
+/* Code inline */
+.prose code:not(pre code) {
+  background-color: #f3f4f6;
+  color: #ec4899;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-weight: 600;
+}
+
+.dark .prose code:not(pre code) {
+  background-color: #1f2937;
+  color: #f472b6;
+}
+
+/* Blocs de code avec highlight.js */
+.prose pre {
+  margin: 1.5rem 0;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+}
+
+.prose pre code {
+  background: transparent !important;
+  padding: 0 !important;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+/* Titres emoji */
+.prose h1,
+.prose h2,
+.prose h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Tables */
+.prose table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.prose thead {
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.dark .prose thead {
+  border-bottom-color: #374151;
+}
+
+/* Checkmarks */
+.prose :where(ul > li)::marker {
+  color: #3b82f6;
+}
+
+.dark .prose :where(ul > li)::marker {
+  color: #60a5fa;
+}
+
+/* Améliorer la lisibilité */
+.prose {
+  line-height: 1.75;
+}
+
+.prose p {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+/* highlight.js override pour dark mode */
+.dark .hljs {
+  background: #1f2937 !important;
+  color: #e5e7eb !important;
+  padding: 1rem !important;
+  border-radius: 0.5rem;
+}
+
+.hljs {
+  background: #1f2937 !important;
+  color: #e5e7eb !important;
+  padding: 1rem !important;
+  border-radius: 0.5rem;
+}
