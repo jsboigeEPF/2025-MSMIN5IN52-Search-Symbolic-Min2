@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problème des Mariages Stables</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .tab-active {
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+        }
+        .step-card {
+            transition: all 0.3s ease;
+        }
+        .matching-item {
+            transition: background-color 0.2s ease;
+        }
+        .matching-item:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-7xl mx-auto p-6">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <!-- En-tête -->
+            <h1 class="text-3xl font-bold mb-2 text-gray-800">
+                Problème des Mariages Stables
+            </h1>
+            <p class="text-gray-600 mb-4">
+                Comparaison entre l'algorithme de Gale-Shapley et résolution CSP avec arc-consistance
+            </p>
+
+            <!-- Onglets -->
+            <div class="flex gap-2 mb-6 border-b">
+                <button onclick="switchTab('setup')" id="tab-setup" class="px-4 py-2 font-medium tab-active">
+                    Configuration
+                </button>
+                <button onclick="switchTab('gale-shapley')" id="tab-gale-shapley" class="px-4 py-2 font-medium text-gray-600">
+                    Gale-Shapley
+                </button>
+                <button onclick="switchTab('csp')" id="tab-csp" class="px-4 py-2 font-medium text-gray-600">
+                    CSP
+                </button>
+                <button onclick="switchTab('compare')" id="tab-compare" class="px-4 py-2 font-medium text-gray-600">
+                    Comparaison
+                </button>
+            </div>
+
+            <!-- Contenu des onglets -->
+            <div id="content-setup" class="tab-content">
+                <div class="space-y-6">
+                    <!-- Configuration -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div class="grid grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">
+                                    Nombre de personnes (n)
+                                </label>
+                                <input type="number" id="n-input" min="3" max="10" value="4" 
+                                       class="w-full px-3 py-2 border rounded">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium mb-2">
+                                    Variante
+                                </label>
+                                <select id="variant-select" class="w-full px-3 py-2 border rounded">
+                                    <option value="standard">Standard</option>
+                                    <option value="incomplete">Listes incomplètes</option>
+                                    <option value="capacity">Capacités multiples</option>
+                                </select>
+                            </div>
+
+                            <div class="flex items-end">
+                                <button onclick="generatePreferences()" 
+                                        class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    Régénérer
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="variant-info" class="hidden"></div>
+                    </div>
+
+                    <!-- Préférences -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h3 class="font-semibold mb-2 flex items-center gap-2">
+                                Préférences des Hommes
+                            </h3>
+                            <div id="men-prefs" class="space-y-1"></div>
+                        </div>
+                        
+                        <div class="bg-pink-50 p-4 rounded-lg">
+                            <h3 class="font-semibold mb-2 flex items-center gap-2">
+                                Préférences des Femmes
+                            </h3>
+                            <div id="women-prefs" class="space-y-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="content-gale-shapley" class="tab-content hidden">
+                <div class="space-y-6">
+                    <div class="flex gap-3">
+                        <button onclick="runGaleShapley()" 
+                                class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                            Exécuter Gale-Shapley
+                        </button>
+                    </div>
+
+                    <!-- Animation -->
+                    <div id="gs-animation" class="hidden"></div>
+
+                    <!-- Résultat -->
+                    <div id="gs-result" class="hidden"></div>
+                </div>
+            </div>
+
+            <div id="content-csp" class="tab-content hidden">
+                <div class="space-y-6">
+                    <div class="flex gap-3">
+                        <button onclick="runCSP()" 
+                                class="px-6 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                            Résoudre avec CSP
+                        </button>
+                    </div>
+
+                    <!-- Info CSP -->
+                    <div class="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">Approche CSP</h3>
+                        <ul class="text-sm space-y-1 text-gray-700">
+                            <li>• <strong>Variables:</strong> x[i] = femme assignée à l'homme i</li>
+                            <li>• <strong>Domaines:</strong> Liste de préférences de chaque homme</li>
+                            <li>• <strong>Contraintes:</strong> Bijection + Pas de paires bloquantes</li>
+                            <li>• <strong>Arc-consistance:</strong> Élimination des paires incompatibles</li>
+                            <li>• <strong>Recherche:</strong> Backtracking avec vérification de stabilité</li>
+                        </ul>
+                    </div>
+
+                    <!-- Résultat -->
+                    <div id="csp-result" class="hidden"></div>
+                </div>
+            </div>
+
+            <div id="content-compare" class="tab-content hidden">
+                <div class="space-y-6">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div id="compare-gs"></div>
+                        <div id="compare-csp"></div>
+                    </div>
+
+                    <div id="compare-analysis" class="hidden"></div>
+
+                    <!-- Propriétés théoriques -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-3">Propriétés Théoriques</h3>
+                        <div class="space-y-2 text-sm text-gray-700">
+                            <p><strong>Existence:</strong> Il existe toujours au moins un matching stable (Gale & Shapley, 1962)</p>
+                            <p><strong>Unicité:</strong> Il peut exister plusieurs matchings stables différents</p>
+                            <p><strong>Optimalité:</strong> Gale-Shapley trouve le matching optimal pour le groupe qui propose</p>
+                            <p><strong>Complexité:</strong> O(n²) pour GS, mais CSP permet d'explorer toutes les solutions</p>
+                            <p><strong>Arc-consistance:</strong> Équivalent à éliminer les paires qui ne peuvent jamais être dans un matching stable</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="stable-marriage.js"></script>
+</body>
+</html>
