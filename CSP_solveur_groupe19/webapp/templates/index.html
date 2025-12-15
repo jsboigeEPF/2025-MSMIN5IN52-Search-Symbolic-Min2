@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CIS Debian 12 CSP Configurator</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 40px; max-width: 720px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 18px; }
+    label { display:block; margin-top: 12px; font-weight: 600; }
+    select, button { margin-top: 6px; padding: 10px; width: 100%; }
+    button { cursor: pointer; font-weight: 700; }
+    .hint { color:#555; margin-top: 8px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>CIS Debian 12 CSP Configurator</h1>
+  <p class="hint">Génère une configuration YAML à partir de la criticité et de l'usage.</p>
+
+  <div class="card">
+    <form method="post" action="/generate">
+      <label for="criticality">Criticité</label>
+      <select id="criticality" name="criticality" required>
+        {% for c in criticalities %}
+          <option value="{{c}}">{{c}}</option>
+        {% endfor %}
+      </select>
+
+      <label for="usage">Usage</label>
+      <select id="usage" name="usage" required>
+        {% for u in usages %}
+          <option value="{{u}}">{{u}}</option>
+        {% endfor %}
+      </select>
+
+      <label for="prefer_firewall">Préférence pare-feu</label>
+      <select id="prefer_firewall" name="prefer_firewall">
+        {% for f in firewall_prefs %}
+          <option value="{{f}}">{{f}}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" style="margin-top:16px;">Télécharger le YAML</button>
+    </form>
+  </div>
+
+  <p class="hint">
+    Astuce : “auto” laisse le solveur choisir (solution optimale, peut varier).
+  </p>
+</body>
+</html>
