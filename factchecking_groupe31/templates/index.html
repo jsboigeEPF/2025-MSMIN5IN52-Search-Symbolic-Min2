@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Check-it! - Vérification d'affirmations</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background: #f7f9fc; color: #1d2a3a; }
+    h1 { margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+    .logo { width: 40px; height: 40px; }
+    .card { background: #fff; padding: 16px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    textarea { width: 100%; min-height: 140px; padding: 10px; font-size: 14px; }
+    button { background: #1d71b8; color: #fff; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; margin-top: 8px; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .learn-more-btn { background: #d9534f; padding: 6px 12px; font-size: 12px; margin-left: 8px; margin-top: 0; }
+    
+    /* Color-coded results */
+    .result { 
+      margin-top: 18px; padding: 12px; border-radius: 6px; 
+      border-left: 4px solid #e0e6ed;
+      transition: all 0.3s ease;
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    .result.fade-in { opacity: 1; transform: translateY(0); }
+    .result.verdict-support { background: #e8f5e9; border-left-color: #4caf50; }
+    .result.verdict-contradict { background: #ffebee; border-left-color: #f44336; }
+    .result.verdict-inconclusive { background: #fff8e1; border-left-color: #ffc107; }
+    
+    .badge { padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .support { background: #d1f2d8; color: #146b2e; }
+    .contradict { background: #fbd5d5; color: #a62828; }
+    .inconclusive { background: #f6e7c1; color: #7a5b00; }
+    .muted { color: #6b7a90; font-size: 13px; }
+    a { color: #1d71b8; }
+    
+    .source-row { 
+      margin-top: 6px; padding: 6px; border-radius: 4px;
+      opacity: 0;
+      transform: translateX(-10px);
+      transition: all 0.3s ease;
+    }
+    .source-row.fade-in { opacity: 1; transform: translateX(0); }
+    
+    /* Progress bar */
+    .progress-container {
+      width: 100%;
+      height: 4px;
+      background: #e0e6ed;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 10px;
+      display: none;
+    }
+    .progress-container.active { display: block; }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #1d71b8, #4a9fd8);
+      width: 0%;
+      transition: width 0.3s ease;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+    .modal-content { background: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 80%; max-width: 600px; max-height: 80vh; overflow-y: auto; }
+    .modal-close { float: right; font-size: 28px; font-weight: bold; cursor: pointer; color: #999; }
+    .modal-close:hover { color: #000; }
+    .modal-section { margin-bottom: 16px; }
+    .modal-section h3 { margin-top: 0; color: #1d71b8; }
+  </style>
+</head>
+<body>
+  <h1>
+    <svg class="logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="11" cy="11" r="7" stroke="#1d71b8" stroke-width="2"/>
+      <path d="M16 16L21 21" stroke="#1d71b8" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    Check-it!
+  </h1>
+  <p class="muted">Collez un texte ou une affirmation. Retour: analyse par sources + verdict pondéré.</p>
+  <div class="card">
+    <textarea id="claimText" placeholder="Ex: Le vaccin X réduit de 60% les hospitalisations..."></textarea>
+    <button id="submitBtn">Vérifier</button>
+    <div id="status" class="muted"></div>
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+  <div id="results"></div>
+  <div id="manipulationModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal()">&times;</span>
+      <h2 id="modalTitle">Analyse de la désinformation</h2>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('submitBtn');
+    const textArea = document.getElementById('claimText');
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+
+    btn.addEventListener('click', async () => {
+      const text = textArea.value.trim();
+      if (!text) return;
+      btn.disabled = true;
+      statusEl.textContent = 'Analyse en cours...';
+      resultsEl.innerHTML = '';
+      
+      // Show progress bar
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      progressContainer.classList.add('active');
+      progressBar.style.width = '10%';
+      
+      // Animate progress bar
+      let progress = 10;
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        progressBar.style.width = progress + '%';
+      }, 300);
+      
+      try {
+        const res = await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        
+        // Complete progress
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        setTimeout(() => {
+          progressContainer.classList.remove('active');
+          progressBar.style.width = '0%';
+        }, 400);
+        
+        renderResults(data);
+        statusEl.textContent = '';
+      } catch (err) {
+        clearInterval(progressInterval);
+        progressContainer.classList.remove('active');
+        progressBar.style.width = '0%';
+        statusEl.textContent = 'Erreur lors de la vérification.';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    function badge(stance) {
+      if (stance === 'support') return '<span class="badge support">Supporte</span>';
+      if (stance === 'contradict') return '<span class="badge contradict">Contredit</span>';
+      return '<span class="badge inconclusive">Inconclu</span>';
+    }
+
+    function pct(x) { return Math.round((x || 0) * 100); }
+
+    function openManipulationModal(claim, analysis) {
+      const modal = document.getElementById('manipulationModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalBody = document.getElementById('modalBody');
+      
+      modalTitle.textContent = `Analyse: Comment cette désinformation se propage`;
+      let html = `<div class="modal-section"><strong>Affirmation:</strong> <em>${claim}</em></div>`;
+      
+      if (analysis.narrative) {
+        html += `<div class="modal-section">
+          <h3>Narrative promue:</h3>
+          <p>${analysis.narrative}</p>
+        </div>`;
+      }
+      if (analysis.target_audience) {
+        html += `<div class="modal-section">
+          <h3>Cible:</h3>
+          <p>${analysis.target_audience}</p>
+        </div>`;
+      }
+      if (analysis.psychological_hooks) {
+        html += `<div class="modal-section">
+          <h3>Ressorts psychologiques exploités:</h3>
+          <p>${analysis.psychological_hooks}</p>
+        </div>`;
+      }
+      if (analysis.spread_vectors && analysis.spread_vectors.length > 0) {
+        html += `<div class="modal-section">
+          <h3>Canaux de propagation courants:</h3>
+          <ul>`;
+        analysis.spread_vectors.forEach(v => {
+          html += `<li>${v}</li>`;
+        });
+        html += `</ul>
+        </div>`;
+      }
+      if (analysis.counter_measures) {
+        html += `<div class="modal-section">
+          <h3>Comment vous protéger:</h3>
+          <p>${analysis.counter_measures}</p>
+        </div>`;
+      }
+      
+      modalBody.innerHTML = html;
+      modal.style.display = 'block';
+    }
+
+    function closeModal() {
+      document.getElementById('manipulationModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+      const modal = document.getElementById('manipulationModal');
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    // Store manipulation analyses globally
+    let manipulationData = {};
+
+    function renderResults(data) {
+      if (!data || !data.claims || !data.claims.length) {
+        resultsEl.innerHTML = '<p class="muted">Aucune affirmation détectée.</p>';
+        return;
+      }
+      manipulationData = {}; // Reset
+      resultsEl.innerHTML = ''; // Clear first
+      
+      // Render each claim with staggered animation
+      data.claims.forEach((c, idx) => {
+        setTimeout(() => {
+          const resultDiv = document.createElement('div');
+          resultDiv.className = `result verdict-${c.verdict}`;
+          
+          const scores = c.stance_scores;
+          let learnMoreBtn = '';
+          if (c.verdict === 'contradict' && c.manipulation_analysis) {
+            manipulationData[idx] = { claim: c.claim, analysis: c.manipulation_analysis };
+            learnMoreBtn = `<button class="learn-more-btn" data-claim-idx="${idx}">En savoir plus</button>`;
+          }
+          
+          resultDiv.innerHTML = `
+            <div><strong>Affirmation:</strong> ${c.claim} ${learnMoreBtn}</div>
+            <div class="muted">Verdict pondéré: ${badge(c.verdict)} (support ${pct(scores.support)}%, contredit ${pct(scores.contradict)}%, inconclu ${pct(scores.inconclusive)}%)</div>
+            <div class="sources-container" data-claim-idx="${idx}"></div>
+          `;
+          
+          resultsEl.appendChild(resultDiv);
+          
+          // Trigger fade-in animation
+          setTimeout(() => resultDiv.classList.add('fade-in'), 50);
+          
+          // Animate sources one by one
+          const sourcesContainer = resultDiv.querySelector('.sources-container');
+          c.evidence.forEach((ev, sourceIdx) => {
+            setTimeout(() => {
+              const sourceDiv = document.createElement('div');
+              sourceDiv.className = 'source-row';
+              sourceDiv.innerHTML = `
+                ${badge(ev.stance)} <strong>${ev.source}</strong> (cred ${pct(ev.credibility)}%, conf ${pct(ev.confidence)}%)
+                ${ev.url ? `- <a href="${ev.url}" target="_blank">lien</a>` : ''}
+                <div class="muted">${ev.snippet}</div>
+              `;
+              sourcesContainer.appendChild(sourceDiv);
+              setTimeout(() => sourceDiv.classList.add('fade-in'), 50);
+            }, sourceIdx * 200); // 200ms delay between sources
+          });
+          
+        }, idx * 400); // 400ms delay between claims
+      });
+      
+      // Attach event listeners after all animations
+      setTimeout(() => {
+        document.querySelectorAll('.learn-more-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const idx = this.getAttribute('data-claim-idx');
+            const data = manipulationData[idx];
+            if (data) {
+              openManipulationModal(data.claim, data.analysis);
+            }
+          });
+        });
+      }, data.claims.length * 400 + 500);
+    }
+  </script>
+</body>
+</html>
